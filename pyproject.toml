@@ -24,7 +24,7 @@ packages = [
 
 [tool.poetry.dependencies]
 treelib = ">=1.6.1"
-volttron = "^10.0.4rc1"
+volttron-core = { path = "../volttron-core", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.2.5"
