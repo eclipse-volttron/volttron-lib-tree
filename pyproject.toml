@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "volttron-lib-topic-tree"
+name = "volttron-lib-tree"
 version = "10.1.0"
 description = "Tree data structures for handling topic-based resources in VOLTTRON."
 authors = ["volttron <volttron@pnnl.gov>"]
@@ -24,7 +24,7 @@ packages = [
 
 [tool.poetry.dependencies]
 treelib = ">=1.6.1"
-volttron-core = { path = "../volttron-core", develop = true }
+volttron-core = ">=2.0.0rc26"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.2.5"

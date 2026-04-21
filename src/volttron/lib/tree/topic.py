@@ -22,25 +22,33 @@
 # ===----------------------------------------------------------------------===
 # }}}
 
-from gevent import Timeout
-from typing import Union, Iterable
+import json
+import logging
+import re
+
+from collections import defaultdict
+from datetime import datetime, timedelta
+from enum import Enum
+from importlib.metadata import distribution, PackageNotFoundError
+from os.path import normpath
+from pydantic import BaseModel
+from typing import Any, Union, Iterable
 from treelib import Tree, Node
 from treelib.exceptions import DuplicatedNodeIdError, NodeIDAbsentError
-from collections import defaultdict
 
-from volttron.client.known_identities import CONFIGURATION_STORE
+try:
+    distribution('volttron-core')
+    from volttron.client.known_identities import CONFIGURATION_STORE
+except PackageNotFoundError:
+    from volttron.platform.agent.known_identities import CONFIGURATION_STORE
 
-import re
-from os.path import normpath
-
-import logging
 _log = logging.getLogger(__name__)
 
 
 class TopicNode(Node):
     def __init__(self, tag=None, identifier=None, expanded=True, data=None, segment_type='TOPIC_SEGMENT', topic=''):
         super(TopicNode, self).__init__(tag, identifier, expanded, data)
-        self.data = data if data else {}
+        self.data: dict[str, Any] = data if data else {}
         self.data['segment_type'] = segment_type
         self.data['topic'] = topic
 
@@ -103,7 +111,7 @@ class TopicTree(Tree):
                             level_dict[d.tag].add(d.identifier)
                         else:
                             level_dict[d.tag].add(d.identifier.split('/', 1)[1])
-                except NodeIDAbsentError as e:
+                except NodeIDAbsentError:
                     return {}
         ret_dict = {}
         for k, s in level_dict.items():
@@ -113,7 +121,8 @@ class TopicTree(Tree):
                 ret_dict[k] = normpath('/'.join([prefix, s.pop()]))
         return ret_dict
 
-    def find_leaves(self, topic_pattern: str = '', regex: str = None, exact_matches: Iterable = None) -> Iterable:
+    def resolve_query(self, topic_pattern: str = '', regex: str = None, exact_matches: Iterable = None,
+                      return_leaves=False) -> Iterable:
         def clipping(topic_parts, nids=None):
             nids = nids if nids else []
             if topic_parts:
@@ -122,12 +131,19 @@ class TopicTree(Tree):
                     if not nids:
                         return clipping(topic_parts, [part]) if self.get_node(part) else nids
                     else:
-                        joined_nids = [self.get_node('/'.join([c, part])).identifier for n in nids for c in n.children]
+                        joined_nids = [self.get_node('/'.join([c.identifier, part])).identifier
+                                       for n in nids for c in self.children(n)]
                         return clipping(topic_parts, joined_nids)
                 else:
                     return nids
             else:
-                return [l.identifier for n in nids for l in self.leaves(n)]
+                return [l.identifier for n in nids for l in self.leaves(n)] if return_leaves else nids
+
+        if not topic_pattern:
+            # If None or empty string, default to "self.root"
+            topic_pattern = self.root
+        elif not topic_pattern.startswith(self.root):
+            topic_pattern = '/'.join([self.root, topic_pattern])
 
         regex = re.compile(regex) if regex else None
         topic_nids = clipping([part.strip('/') for part in topic_pattern.split('/-') if part != '']) if topic_pattern else []
@@ -138,7 +154,7 @@ class TopicTree(Tree):
         elif not topic_nids and exact_matches:
             nodes = (self.get_node(n) for n in exact_matches if (not regex or regex.search(n)) and self.contains(n))
         else:
-            nodes = self.filter_nodes(lambda n: regex.search(n.identifier)) if regex else self.all_nodes_itr()
+            nodes = self.filter_nodes(lambda n: regex.search(n.identifier)) if regex else []
         return nodes
 
     def prune(self, topic_pattern: str = None, regex: str = None, exact_matches: Iterable = None, *args, **kwargs):
@@ -166,68 +182,17 @@ class TopicTree(Tree):
         else:
             return [n.identifier for n in nodes]
 
+    def to_json(self, with_data=False, sort=True, reverse=False):
+        """To format the tree in JSON format."""
+        def custom_encoder(obj):
+            if isinstance(obj, BaseModel):
+                return obj.model_dump()
+            if isinstance(obj, Enum):
+                return obj.value
+            if isinstance(obj, timedelta):
+                return obj.total_seconds()
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            return json.JSONEncoder().default(obj)
 
-class DeviceNode(TopicNode):
-    def __init__(self, tag=None, identifier=None, expanded=True, data=None, segment_type='TOPIC_SEGMENT', topic=''):
-        super(DeviceNode, self).__init__(tag, identifier, expanded, data, segment_type, topic)
-
-    def is_point(self):
-        return True if self.segment_type == 'POINT' else False
-
-    def is_device(self):
-        return True if self.segment_type == 'DEVICE' else False
-
-
-class DeviceTree(TopicTree):
-    def __init__(self, topic_list=None, root_name='devices', assume_full_topics=False,  *args, **kwargs):
-        super(DeviceTree, self).__init__(topic_list=topic_list, root_name=root_name, node_class=DeviceNode,
-                                         *args, **kwargs)
-        if assume_full_topics:
-            for n in self.leaves():
-                n.data['segment_type'] = 'POINT'
-            for n in [self.parent(l.identifier) for l in self.leaves()]:
-                n.data['segment_type'] = 'DEVICE'
-
-    def points(self, nid=None):
-        if nid is None:
-            points = [n for n in self._nodes.values() if n.is_point()]
-        else:
-            points = [self[n] for n in self.expand_tree(nid) if self[n].is_point()]
-        return points
-
-    def devices(self, nid=None):
-        if nid is None:
-            points = [n for n in self._nodes.values() if n.is_device()]
-        else:
-            points = [self[n] for n in self.expand_tree(nid) if self[n].is_device()]
-        return points
-
-    # TODO: Getting points requires getting device config, using it to find the registry config,
-    #  and then parsing that. There is not a method in config.store, nor in the platform.driver for
-    #  getting a completed configuration. The configuration is only fully assembled in the subsystem's
-    #  _initial_update method called when the agent itself calls get_configs at startup. There does not
-    #  seem to be an equivalent management method, and the code for this is in the agent subsystem
-    #  rather than the service (though it is reached through the service, oddly...
-    @classmethod
-    def from_store(cls, platform, rpc_caller):
-        # TODO: Duplicate logic for external_platform check from VUIEndpoints to remove reference to it from here.
-        kwargs = {'external_platform': platform} if 'VUIEndpoints' in rpc_caller.__repr__() else {}
-        devices = rpc_caller(CONFIGURATION_STORE, 'manage_list_configs', 'platform.driver', **kwargs)
-        devices = devices if kwargs else devices.get(timeout=5)
-        devices = [d for d in devices if re.match('^devices/.*', d)]
-        device_tree = cls(devices)
-        for d in devices:
-            dev_config = rpc_caller(CONFIGURATION_STORE, 'manage_get', 'platform.driver', d, raw=False, **kwargs)
-            # TODO: If not AsyncResponse instead of if kwargs
-            dev_config = dev_config if kwargs else dev_config.get(timeout=5)
-            reg_cfg_name = dev_config.pop('registry_config')[len('config://'):]
-            data = {'config': dev_config, 'segment_type': 'DEVICE'}
-            device_tree.update_node(d, data=data)
-            registry_config = rpc_caller('config.store', 'manage_get', 'platform.driver',
-                                         f'{reg_cfg_name}', raw=False, **kwargs)
-            registry_config = registry_config if kwargs else registry_config.get(timeout=5)
-            for pnt in registry_config:
-                point_name = pnt.pop('Volttron Point Name')
-                n = device_tree.create_node(point_name, f"{d}/{point_name}", parent=d, data=pnt)
-                n.data['segment_type'] = 'POINT'
-        return device_tree
+        return json.dumps(self.to_dict(with_data=with_data, sort=sort, reverse=reverse), default=custom_encoder)
