@@ -6,7 +6,7 @@ authors = ["volttron <volttron@pnnl.gov>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://volttron.org"
-repository = "https://github.com/eclipse-volttron/volttron-lib-topic-tree"
+repository = "https://github.com/eclipse-volttron/volttron-lib-tree"
 documentation = "https://volttron.readthedocs.org"
 classifiers = [
     "Development Status :: 3 - Alpha",
