@@ -23,6 +23,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
+python = "^3.10"
 treelib = ">=1.6.1"
 volttron-core = ">=2.0.0rc26"
 
@@ -35,5 +36,5 @@ toml = "^0.10.2"
 mypy = "^1.2.0"
 
 [build-system]
-requires = ["poetry-core>=1.2.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
