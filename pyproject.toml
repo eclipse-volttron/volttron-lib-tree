@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "volttron-lib-tree"
-version = "10.1.0"
+version = "2.0.0rc1"
 description = "Tree data structures for handling topic-based resources in VOLTTRON."
 authors = ["volttron <volttron@pnnl.gov>"]
 license = "Apache-2.0"
@@ -18,13 +18,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 
-packages = [
-    { include = "volttron", from = "src" }
-]
+packages = [ { include = "volttron", from = "src" }]
 
 [tool.poetry.dependencies]
 treelib = ">=1.6.1"
-volttron-core = ">=2.0.0rc26"
+volttron-core = ">=2.0.0rc28"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.2.5"
@@ -35,5 +33,5 @@ toml = "^0.10.2"
 mypy = "^1.2.0"
 
 [build-system]
-requires = ["poetry-core>=1.2.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
