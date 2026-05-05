@@ -25,12 +25,7 @@ treelib = ">=1.6.1"
 volttron-core = ">=2.0.0rc28"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^6.2.5"
-mock = "^4.0.3"
-pre-commit = "^2.17.0"
-yapf = "^0.32.0"
-toml = "^0.10.2"
-mypy = "^1.2.0"
+pytest = ">=7.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]

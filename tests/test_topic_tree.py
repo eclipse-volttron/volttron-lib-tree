@@ -24,7 +24,7 @@
 
 import pytest
 from uuid import UUID
-from volttron.lib.topic_tree import TopicNode, TopicTree, DeviceNode, DeviceTree
+from volttron.lib.tree import TopicNode, TopicTree, DeviceNode, DeviceTree
 
 
 TOPIC_LIST = ['Campus/Building1/Fake1/SampleWritableFloat1', 'Campus/Building1/Fake1/SampleBool1',
