@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "volttron-lib-tree"
+version = "2.0.0rc1"
+description = "Tree data structures for handling topic-based resources in VOLTTRON."
+authors = ["volttron <volttron@pnnl.gov>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://volttron.org"
+repository = "https://github.com/eclipse-volttron/volttron-lib-tree"
+documentation = "https://volttron.readthedocs.org"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+packages = [ { include = "volttron", from = "src" }]
+
+[tool.poetry.dependencies]
+treelib = ">=1.6.1"
+volttron-core = ">=2.0.0rc28"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
