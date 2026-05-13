@@ -22,7 +22,7 @@ packages = [ { include = "volttron", from = "src" }]
 
 [tool.poetry.dependencies]
 treelib = ">=1.6.1"
-volttron-core = ">=2.0.0rc28"
+volttron-core = ">=2.0.0rc29"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0.0"
