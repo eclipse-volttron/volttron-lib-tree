@@ -21,7 +21,7 @@ classifiers = [
 packages = [ { include = "volttron", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10"
 treelib = ">=1.6.1"
 volttron-core = ">=2.0.0rc30"
 pydantic = ">=2.0.0,<3.0.0"
