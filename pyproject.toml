@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "volttron-lib-tree"
-version = "2.0.0rc2"
+version = "2.0.0rc3"
 description = "Tree data structures for handling topic-based resources in VOLTTRON."
 authors = ["volttron <volttron@pnnl.gov>"]
 license = "Apache-2.0"
